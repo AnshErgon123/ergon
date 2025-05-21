@@ -17,71 +17,126 @@ html_template = """
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
             margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
             color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
 
-        header {
+        /* Navigation bar */
+        nav {
             background-color: #1e88e5;
+            padding: 1rem 2rem;
             color: white;
-            padding: 1rem;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
+        nav h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        /* Main content */
         main {
-            padding: 1rem 2rem;
+            flex: 1;
+            padding: 2rem;
         }
 
         h2 {
             margin-bottom: 1rem;
         }
 
-        #log {
-            list-style: none;
-            padding: 0;
-            max-height: 80vh;
-            overflow-y: auto;
-            border: 1px solid #ccc;
+        table {
+            width: 100%;
+            border-collapse: collapse;
             background-color: white;
-            border-radius: 6px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
         }
 
-        #log li {
-            padding: 0.5rem 1rem;
-            border-bottom: 1px solid #eee;
+        thead {
+            background-color: #1976d2;
+            color: white;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
             font-family: monospace;
         }
 
-        #log li:last-child {
+        tr:last-child td {
             border-bottom: none;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f1f1f1;
+        }
+
+        /* Footer */
+        footer {
+            background-color: #1e88e5;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            th, td {
+                font-size: 0.85rem;
+            }
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>CAN Bus Live Monitor</h1>
-    </header>
+    <nav>
+        <h1>CAN Monitor Dashboard</h1>
+    </nav>
+
     <main>
         <h2>Live CAN Data</h2>
-        <ul id="log"></ul>
+        <table>
+            <thead>
+                <tr>
+                    <th>CAN ID</th>
+                    <th>Data</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody id="log">
+                <!-- CAN data rows will be injected here -->
+            </tbody>
+        </table>
     </main>
+
+    <footer>
+        &copy; 2025 CAN Monitor | Powered by Flask + Socket.IO
+    </footer>
 
     <script>
         const socket = io();
         const log = document.getElementById("log");
-        const maxEntries = 200;
+        const maxRows = 100;
 
         socket.on("can_message", (data) => {
-            const item = document.createElement("li");
-            item.textContent = `ID: ${data.id}, Data: ${data.data}, Timestamp: ${data.timestamp}`;
-            log.prepend(item);
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${data.id}</td>
+                <td>${data.data}</td>
+                <td>${data.timestamp}</td>
+            `;
+            log.prepend(row);
 
-            // Keep log length under maxEntries
-            while (log.children.length > maxEntries) {
+            // Cap rows
+            while (log.children.length > maxRows) {
                 log.removeChild(log.lastChild);
             }
         });
@@ -89,6 +144,7 @@ html_template = """
 </body>
 </html>
 """
+
 
 
 # Serve the frontend
