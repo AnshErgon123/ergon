@@ -26,7 +26,6 @@ html_template = """
             min-height: 100vh;
         }
 
-        /* Navigation bar */
         nav {
             background-color: #1e88e5;
             padding: 1rem 2rem;
@@ -41,7 +40,6 @@ html_template = """
             font-size: 1.5rem;
         }
 
-        /* Main content */
         main {
             flex: 1;
             padding: 2rem;
@@ -49,6 +47,20 @@ html_template = """
 
         h2 {
             margin-bottom: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .controls input, .controls button {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
         }
 
         table {
@@ -80,7 +92,6 @@ html_template = """
             background-color: #f1f1f1;
         }
 
-        /* Footer */
         footer {
             background-color: #1e88e5;
             color: white;
@@ -93,6 +104,15 @@ html_template = """
             th, td {
                 font-size: 0.85rem;
             }
+
+            .controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .controls input, .controls button {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -103,6 +123,12 @@ html_template = """
 
     <main>
         <h2>Live CAN Data</h2>
+        <div class="controls">
+            <input type="text" id="filter" placeholder="Filter by CAN ID..." />
+            <button id="toggle">Pause</button>
+            <button id="download">Download CSV</button>
+        </div>
+
         <table>
             <thead>
                 <tr>
@@ -124,26 +150,68 @@ html_template = """
     <script>
         const socket = io();
         const log = document.getElementById("log");
+        const filterInput = document.getElementById("filter");
+        const toggleBtn = document.getElementById("toggle");
+        const downloadBtn = document.getElementById("download");
+
         const maxRows = 100;
+        let paused = false;
+        let messages = [];
 
         socket.on("can_message", (data) => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>${data.id}</td>
-                <td>${data.data}</td>
-                <td>${data.timestamp}</td>
-            `;
-            log.prepend(row);
+            if (paused) return;
 
-            // Cap rows
-            while (log.children.length > maxRows) {
-                log.removeChild(log.lastChild);
+            messages.unshift(data);  // store new message at the beginning
+            if (messages.length > maxRows) messages = messages.slice(0, maxRows);
+            renderTable();
+        });
+
+        function renderTable() {
+            const filterValue = filterInput.value.trim().toLowerCase();
+            log.innerHTML = "";  // clear table
+
+            for (const msg of messages) {
+                if (!msg.id.toLowerCase().includes(filterValue)) continue;
+
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${msg.id}</td>
+                    <td>${msg.data}</td>
+                    <td>${msg.timestamp}</td>
+                `;
+                log.appendChild(row);
             }
+        }
+
+        filterInput.addEventListener("input", renderTable);
+
+        toggleBtn.addEventListener("click", () => {
+            paused = !paused;
+            toggleBtn.textContent = paused ? "Resume" : "Pause";
+        });
+
+        downloadBtn.addEventListener("click", () => {
+            if (messages.length === 0) return;
+
+            let csv = "CAN ID,Data,Timestamp\\n";
+            for (const msg of messages) {
+                csv += `${msg.id},${msg.data},${msg.timestamp}\\n`;
+            }
+
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "can_data.csv";
+            a.click();
+            URL.revokeObjectURL(url);
         });
     </script>
 </body>
 </html>
 """
+
 
 
 
