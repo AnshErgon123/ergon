@@ -1,12 +1,13 @@
 from flask import Flask, request, jsonify, render_template_string
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO
 import os
+import time
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Token for verifying client (same as used in test.py/local_client.py)
 SECRET_TOKEN = os.environ.get("SECRET_TOKEN", "supersecret")
+last_heartbeat_time = 0
 
 html_template = """
 <!DOCTYPE html>
@@ -153,36 +154,42 @@ html_template = """
         const searchInput = document.getElementById("searchInput");
         const maxRows = 100;
         let allMessages = [];
+        let heartbeatTimeout;
 
         socket.on("connect", () => {
-            status.textContent = "Connected";
-            status.classList.add("connected");
+            console.log("Socket.IO connected");
         });
 
         socket.on("disconnect", () => {
-            status.textContent = "Disconnected";
-            status.classList.remove("connected");
+            console.log("Socket.IO disconnected");
+            setClientStatus("Disconnected");
         });
 
         socket.on("can_message", (data) => {
-            allMessages.unshift(data); // Add new message at start
+            allMessages.unshift(data);
             if (allMessages.length > maxRows) {
-                allMessages.pop(); // Trim array
+                allMessages.pop();
             }
             renderMessages();
+        });
+
+        socket.on("heartbeat", (data) => {
+            setClientStatus("Connected");
+            clearTimeout(heartbeatTimeout);
+            heartbeatTimeout = setTimeout(() => {
+                setClientStatus("Disconnected");
+            }, 10000);
         });
 
         searchInput.addEventListener("input", renderMessages);
 
         function renderMessages() {
             const filter = searchInput.value.toLowerCase();
-            log.innerHTML = ""; // Clear log
-
+            log.innerHTML = "";
             const filtered = allMessages.filter(msg =>
                 msg.id.toLowerCase().includes(filter) ||
                 msg.data.toLowerCase().includes(filter)
             );
-
             for (const data of filtered) {
                 const row = document.createElement("tr");
                 row.innerHTML = `
@@ -193,20 +200,20 @@ html_template = """
                 log.appendChild(row);
             }
         }
+
+        function setClientStatus(text) {
+            status.textContent = text;
+            status.classList.toggle("connected", text === "Connected");
+        }
     </script>
 </body>
 </html>
 """
 
-
-
-
-# Serve the frontend
 @app.route("/")
 def index():
     return render_template_string(html_template)
 
-# Receive data from local client
 @app.route("/api/send_data", methods=["POST"])
 def receive_data():
     auth_header = request.headers.get("Authorization", "")
@@ -219,6 +226,25 @@ def receive_data():
 
     socketio.emit("can_message", data)
     return jsonify({"status": "received"}), 200
+
+@app.route("/api/heartbeat", methods=["POST"])
+def heartbeat():
+    global last_heartbeat_time
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer ") or auth_header.split(" ")[1] != SECRET_TOKEN:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    last_heartbeat_time = time.time()
+    socketio.emit("heartbeat", {"status": "online", "timestamp": last_heartbeat_time})
+    return jsonify({"status": "alive"}), 200
+
+@socketio.on("connect")
+def on_connect():
+    print("Web client connected")
+
+@socketio.on("disconnect")
+def on_disconnect():
+    print("Web client disconnected")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
