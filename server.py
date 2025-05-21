@@ -51,16 +51,37 @@ html_template = """
 
         .controls {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
             flex-wrap: wrap;
             gap: 1rem;
         }
 
-        .controls input, .controls button {
+        .controls input {
             padding: 0.5rem 1rem;
             font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .controls button {
+            padding: 0.5rem 1.2rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            background-color: #1976d2;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .controls button:hover {
+            background-color: #1565c0;
+        }
+
+        .controls button:active {
+            background-color: #0d47a1;
         }
 
         table {
@@ -107,7 +128,7 @@ html_template = """
 
             .controls {
                 flex-direction: column;
-                align-items: flex-start;
+                align-items: stretch;
             }
 
             .controls input, .controls button {
@@ -138,7 +159,7 @@ html_template = """
                 </tr>
             </thead>
             <tbody id="log">
-                <!-- CAN data rows will be injected here -->
+                <!-- Data will be inserted here -->
             </tbody>
         </table>
     </main>
@@ -161,24 +182,24 @@ html_template = """
         socket.on("can_message", (data) => {
             if (paused) return;
 
-            messages.unshift(data);  // store new message at the beginning
+            messages.unshift(data);
             if (messages.length > maxRows) messages = messages.slice(0, maxRows);
             renderTable();
         });
 
         function renderTable() {
             const filterValue = filterInput.value.trim().toLowerCase();
-            log.innerHTML = "";  // clear table
+            log.innerHTML = "";
 
             for (const msg of messages) {
                 if (!msg.id.toLowerCase().includes(filterValue)) continue;
 
                 const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${msg.id}</td>
-                    <td>${msg.data}</td>
-                    <td>${msg.timestamp}</td>
-                `;
+                row.innerHTML = \`
+                    <td>\${msg.id}</td>
+                    <td>\${msg.data}</td>
+                    <td>\${msg.timestamp}</td>
+                \`;
                 log.appendChild(row);
             }
         }
@@ -194,9 +215,9 @@ html_template = """
             if (messages.length === 0) return;
 
             let csv = "CAN ID,Data,Timestamp\\n";
-            for (const msg of messages) {
-                csv += `${msg.id},${msg.data},${msg.timestamp}\\n`;
-            }
+            messages.forEach(msg => {
+                csv += \`\${msg.id},\${msg.data},\${msg.timestamp}\\n\`;
+            });
 
             const blob = new Blob([csv], { type: "text/csv" });
             const url = URL.createObjectURL(blob);
@@ -211,6 +232,7 @@ html_template = """
 </body>
 </html>
 """
+
 
 
 
