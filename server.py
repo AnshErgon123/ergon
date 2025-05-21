@@ -17,224 +17,78 @@ html_template = """
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <style>
         body {
-            margin: 0;
             font-family: Arial, sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        nav {
-            background-color: #1e88e5;
-            padding: 1rem 2rem;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        nav h1 {
             margin: 0;
-            font-size: 1.5rem;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        header {
+            background-color: #1e88e5;
+            color: white;
+            padding: 1rem;
+            text-align: center;
         }
 
         main {
-            flex: 1;
-            padding: 2rem;
+            padding: 1rem 2rem;
         }
 
         h2 {
             margin-bottom: 1rem;
         }
 
-        .controls {
-            display: flex;
-            justify-content: flex-start;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .controls input {
-            padding: 0.5rem 1rem;
-            font-size: 1rem;
+        #log {
+            list-style: none;
+            padding: 0;
+            max-height: 80vh;
+            overflow-y: auto;
             border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        .controls button {
-            padding: 0.5rem 1.2rem;
-            font-size: 1rem;
-            border: none;
-            border-radius: 5px;
-            background-color: #1976d2;
-            color: white;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-        .controls button:hover {
-            background-color: #1565c0;
-        }
-
-        .controls button:active {
-            background-color: #0d47a1;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
             background-color: white;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            overflow: hidden;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
-        thead {
-            background-color: #1976d2;
-            color: white;
-        }
-
-        th, td {
-            padding: 0.75rem 1rem;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
+        #log li {
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid #eee;
             font-family: monospace;
         }
 
-        tr:last-child td {
+        #log li:last-child {
             border-bottom: none;
-        }
-
-        tbody tr:nth-child(even) {
-            background-color: #f1f1f1;
-        }
-
-        footer {
-            background-color: #1e88e5;
-            color: white;
-            text-align: center;
-            padding: 1rem;
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 768px) {
-            th, td {
-                font-size: 0.85rem;
-            }
-
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .controls input, .controls button {
-                width: 100%;
-            }
         }
     </style>
 </head>
 <body>
-    <nav>
-        <h1>CAN Monitor Dashboard</h1>
-    </nav>
-
+    <header>
+        <h1>CAN Bus Live Monitor</h1>
+    </header>
     <main>
         <h2>Live CAN Data</h2>
-        <div class="controls">
-            <input type="text" id="filter" placeholder="Filter by CAN ID..." />
-            <button id="toggle">Pause</button>
-            <button id="download">Download CSV</button>
-        </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>CAN ID</th>
-                    <th>Data</th>
-                    <th>Timestamp</th>
-                </tr>
-            </thead>
-            <tbody id="log">
-                <!-- Data will be inserted here -->
-            </tbody>
-        </table>
+        <ul id="log"></ul>
     </main>
-
-    <footer>
-        &copy; 2025 CAN Monitor | Powered by Flask + Socket.IO
-    </footer>
 
     <script>
         const socket = io();
         const log = document.getElementById("log");
-        const filterInput = document.getElementById("filter");
-        const toggleBtn = document.getElementById("toggle");
-        const downloadBtn = document.getElementById("download");
-
-        const maxRows = 100;
-        let paused = false;
-        let messages = [];
+        const maxEntries = 200;
 
         socket.on("can_message", (data) => {
-            if (paused) return;
+            const item = document.createElement("li");
+            item.textContent = `ID: ${data.id}, Data: ${data.data}, Timestamp: ${data.timestamp}`;
+            log.prepend(item);
 
-            messages.unshift(data);
-            if (messages.length > maxRows) messages = messages.slice(0, maxRows);
-            renderTable();
-        });
-
-        function renderTable() {
-            const filterValue = filterInput.value.trim().toLowerCase();
-            log.innerHTML = "";
-
-            for (const msg of messages) {
-                if (!msg.id.toLowerCase().includes(filterValue)) continue;
-
-                const row = document.createElement("tr");
-                row.innerHTML = \`
-                    <td>\${msg.id}</td>
-                    <td>\${msg.data}</td>
-                    <td>\${msg.timestamp}</td>
-                \`;
-                log.appendChild(row);
+            // Keep log length under maxEntries
+            while (log.children.length > maxEntries) {
+                log.removeChild(log.lastChild);
             }
-        }
-
-        filterInput.addEventListener("input", renderTable);
-
-        toggleBtn.addEventListener("click", () => {
-            paused = !paused;
-            toggleBtn.textContent = paused ? "Resume" : "Pause";
-        });
-
-        downloadBtn.addEventListener("click", () => {
-            if (messages.length === 0) return;
-
-            let csv = "CAN ID,Data,Timestamp\\n";
-            messages.forEach(msg => {
-                csv += \`\${msg.id},\${msg.data},\${msg.timestamp}\\n\`;
-            });
-
-            const blob = new Blob([csv], { type: "text/csv" });
-            const url = URL.createObjectURL(blob);
-
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "can_data.csv";
-            a.click();
-            URL.revokeObjectURL(url);
         });
     </script>
 </body>
 </html>
 """
-
-
-
 
 
 # Serve the frontend
