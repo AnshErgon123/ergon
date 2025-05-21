@@ -26,7 +26,6 @@ html_template = """
             min-height: 100vh;
         }
 
-        /* Navigation bar */
         nav {
             background-color: #1e88e5;
             padding: 1rem 2rem;
@@ -41,7 +40,17 @@ html_template = """
             font-size: 1.5rem;
         }
 
-        /* Main content */
+        nav .status {
+            font-size: 0.9rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            background-color: #c62828;
+        }
+
+        nav .status.connected {
+            background-color: #2e7d32;
+        }
+
         main {
             flex: 1;
             padding: 2rem;
@@ -49,6 +58,17 @@ html_template = """
 
         h2 {
             margin-bottom: 1rem;
+        }
+
+        .search-box {
+            margin-bottom: 1rem;
+        }
+
+        .search-box input {
+            padding: 0.5rem;
+            font-size: 1rem;
+            width: 100%;
+            max-width: 300px;
         }
 
         table {
@@ -80,7 +100,6 @@ html_template = """
             background-color: #f1f1f1;
         }
 
-        /* Footer */
         footer {
             background-color: #1e88e5;
             color: white;
@@ -99,10 +118,16 @@ html_template = """
 <body>
     <nav>
         <h1>CAN Monitor Dashboard</h1>
+        <div class="status" id="status">Disconnected</div>
     </nav>
 
     <main>
         <h2>Live CAN Data</h2>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Filter by CAN ID or Data...">
+        </div>
+
         <table>
             <thead>
                 <tr>
@@ -118,32 +143,61 @@ html_template = """
     </main>
 
     <footer>
-        &copy; 2025 CAN Monitor | Powered by Flask + Socket.IO
+        CAN Monitor | by Ergon Mobility 
     </footer>
 
     <script>
         const socket = io();
         const log = document.getElementById("log");
+        const status = document.getElementById("status");
+        const searchInput = document.getElementById("searchInput");
         const maxRows = 100;
+        let allMessages = [];
+
+        socket.on("connect", () => {
+            status.textContent = "Connected";
+            status.classList.add("connected");
+        });
+
+        socket.on("disconnect", () => {
+            status.textContent = "Disconnected";
+            status.classList.remove("connected");
+        });
 
         socket.on("can_message", (data) => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>${data.id}</td>
-                <td>${data.data}</td>
-                <td>${data.timestamp}</td>
-            `;
-            log.prepend(row);
-
-            // Cap rows
-            while (log.children.length > maxRows) {
-                log.removeChild(log.lastChild);
+            allMessages.unshift(data); // Add new message at start
+            if (allMessages.length > maxRows) {
+                allMessages.pop(); // Trim array
             }
+            renderMessages();
         });
+
+        searchInput.addEventListener("input", renderMessages);
+
+        function renderMessages() {
+            const filter = searchInput.value.toLowerCase();
+            log.innerHTML = ""; // Clear log
+
+            const filtered = allMessages.filter(msg =>
+                msg.id.toLowerCase().includes(filter) ||
+                msg.data.toLowerCase().includes(filter)
+            );
+
+            for (const data of filtered) {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${data.id}</td>
+                    <td>${data.data}</td>
+                    <td>${data.timestamp}</td>
+                `;
+                log.appendChild(row);
+            }
+        }
     </script>
 </body>
 </html>
 """
+
 
 
 
