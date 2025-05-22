@@ -90,10 +90,4 @@ def on_disconnect():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    # *** Here’s the only change: ***
-    socketio.run(
-        app,
-        host="0.0.0.0",
-        port=port,
-        allow_unsafe_werkzeug=True
-    )
+    socketio.run(app, host="0.0.0.0", port=port)
