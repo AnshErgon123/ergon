@@ -122,11 +122,11 @@ html_template = """
         m.data.toLowerCase().includes(filter)
       ).forEach(msg => {
         const row = document.createElement("tr");
-        row.innerHTML = `
+        row.innerHTML = 
           <td>${msg.id}</td>
           <td>${msg.data}</td>
           <td>${msg.timestamp}</td>
-        `;
+        ;
         log.appendChild(row);
       });
     }
