@@ -23,7 +23,7 @@ html_template = """
   <title>CAN Bus Live Monitor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Bootstrap 5 -->
-  <link href="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
   <style>
     body { padding-top: 70px; }
@@ -96,11 +96,11 @@ html_template = """
 
   <!-- Socket.IO + JS Logic -->
   <script>
-    const socket = io();
-    const log = document.getElementById("log");
+    const socket      = io();
+    const log         = document.getElementById("log");
     const searchInput = document.getElementById("searchInput");
-    const dot = document.getElementById("status-indicator");
-    const text = document.getElementById("status-text");
+    const dot         = document.getElementById("status-indicator");
+    const text        = document.getElementById("status-text");
     let allMsgs = [], heartbeatTimer;
 
     socket.on("can_message", data => {
@@ -134,9 +134,10 @@ html_template = """
       ).forEach(msg => {
         const row = document.createElement("tr");
         row.innerHTML = 
-          `<td>${msg.id}</td>
-           <td>${msg.data}</td>
-           <td>${msg.timestamp}</td>`;
+          <td>${msg.id}</td>
+          <td>${msg.data}</td>
+          <td>${msg.timestamp}</td>
+        ;
         log.appendChild(row);
       });
     }
