@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for
-
-app = Flask(__name__, template_folder='server/templates')
+import os
+app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'server', 'templates'))
 
 @app.route('/')
 def home():
