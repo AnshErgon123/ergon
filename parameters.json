@@ -1,0 +1,32 @@
+[
+  {
+    "node_id": "0x27",
+    "category": "Brake Input",
+    "name": "Brake Pedal Enable",
+    "device_value": "Off",
+    "project_value": "Off",
+    "min_value": "Off",
+    "max_value": "On",
+    "help_text": "Enables brake pedal input"
+  },
+  {
+    "node_id": "0x27",
+    "category": "Brake Input",
+    "name": "Brake Min Input",
+    "device_value": "15 %",
+    "project_value": "15 %",
+    "min_value": "0 %",
+    "max_value": "100 %",
+    "help_text": "Voltage at pot2 wiper (pin 17)"
+  },
+  {
+    "node_id": "0x27",
+    "category": "Brake Input",
+    "name": "Brake Max Input",
+    "device_value": "85 %",
+    "project_value": "85 %",
+    "min_value": "0 %",
+    "max_value": "100 %",
+    "help_text": ""
+  }
+]
