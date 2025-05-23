@@ -25,4 +25,6 @@ def data():
 def ok():
     return render_template("ok.html", title="OK Page")
 
-# Keep existing /api/send_data, /api/heartbeat, /logs/download etc. as is
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))  # default to 10000 for local dev
+    socketio.run(app, host="0.0.0.0", port=port)
