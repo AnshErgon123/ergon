@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for
 import os
+from flask import Flask, render_template, request, redirect, url_for
+
 app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), 'server', 'templates'))
 
 @app.route('/')
@@ -21,4 +22,4 @@ def data():
     return render_template('data.html')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=10000, debug=True)
