@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: can-monitor
+    env: python
+    plan: free
+    buildCommand: ""
+    startCommand: python server.py
+    envVars:
+      - key: SECRET_TOKEN
+        value: your_secret_token
