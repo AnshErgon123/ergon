@@ -1,30 +1,24 @@
-from flask import Flask, request, jsonify, render_template, send_file, redirect, url_for
-from flask_socketio import SocketIO
-import os, time, csv
-from datetime import datetime
+from flask import Flask, render_template, request, redirect, url_for
 
-app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+app = Flask(__name__, template_folder='server/templates')
 
-@app.route("/")
+@app.route('/')
 def home():
-    return redirect(url_for('login'))
+    return render_template('login.html')
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route('/login', methods=['POST'])
 def login():
-    if request.method == "POST":
-        # You can add real authentication here
-        return redirect(url_for('data'))
-    return render_template("login.html", title="Login")
+    username = request.form.get('username')
+    password = request.form.get('password')
 
-@app.route("/data")
+    if username == 'admin' and password == 'password':
+        return render_template('ok.html', username=username)
+    else:
+        return render_template('login.html', error="Invalid credentials")
+
+@app.route('/data')
 def data():
-    return render_template("data.html", title="CAN Data")
+    return render_template('data.html')
 
-@app.route("/ok")
-def ok():
-    return render_template("ok.html", title="OK Page")
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # default to 10000 for local dev
-    socketio.run(app, host="0.0.0.0", port=port)
+if __name__ == '__main__':
+    app.run(debug=True)
