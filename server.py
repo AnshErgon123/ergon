@@ -11,126 +11,223 @@ html_template = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>CAN Bus Live Monitor</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap 5 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-  <style>
-    body { padding-top: 70px; }
-    .status-dot {
-      display: inline-block;
-      width: .75rem; height: .75rem;
-      border-radius: 50%;
-      margin-right: .5rem;
-      background-color: #dc3545;
-    }
-    .status-dot.online { background-color: #28a745; }
-    footer {
-      background: #f8f9fa;
-      padding: 1rem 0;
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      text-align: center;
-      border-top: 1px solid #e4e4e4;
-    }
-    table tbody tr:nth-child(even) { background-color: #f8f9fa; }
-    .table-wrapper { max-height: 60vh; overflow-y: auto; }
-  </style>
+    <meta charset="UTF-8">
+    <title>CAN Bus Live Monitor</title>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        nav {
+            background-color: #1e88e5;
+            padding: 1rem 2rem;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem;
+        }
+
+        h2 {
+            margin-bottom: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .controls input {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .controls button {
+            padding: 0.5rem 1.2rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            background-color: #1976d2;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .controls button:hover {
+            background-color: #1565c0;
+        }
+
+        .controls button:active {
+            background-color: #0d47a1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        thead {
+            background-color: #1976d2;
+            color: white;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-family: monospace;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f1f1f1;
+        }
+
+        footer {
+            background-color: #1e88e5;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            th, td {
+                font-size: 0.85rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .controls input, .controls button {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top shadow-sm">
-    <div class="container-fluid">
-      <a class="navbar-brand d-flex align-items-center" href="#">
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" width="30" height="30" class="d-inline-block align-text-top">
-        <span class="ms-2">CAN Monitor</span>
-      </a>
-      <div class="d-flex">
-        <div id="status-indicator" class="status-dot"></div>
-        <span id="status-text">Disconnected</span>
-      </div>
-    </div>
-  </nav>
+    <nav>
+        <h1>CAN Monitor Dashboard</h1>
+    </nav>
 
-  <!-- Main Content -->
-  <main class="container my-4">
-    <div class="row mb-3">
-      <div class="col-md-6">
-        <input id="searchInput" type="text" class="form-control" placeholder="Filter by CAN ID or Data...">
-      </div>
-    </div>
-    <div class="table-wrapper">
-      <table class="table table-striped table-bordered">
-        <thead class="table-primary">
-          <tr>
-            <th>CAN ID</th>
-            <th>Data</th>
-            <th>Timestamp</th>
-          </tr>
-        </thead>
-        <tbody id="log"></tbody>
-      </table>
-    </div>
-  </main>
+    <main>
+        <h2>Live CAN Data</h2>
+        <div class="controls">
+            <input type="text" id="filter" placeholder="Filter by CAN ID..." />
+            <button id="toggle">Pause</button>
+            <button id="download">Download CSV</button>
+        </div>
 
-  <!-- Footer -->
-  <footer>
-    <div class="container">
-      <small class="text-muted">© 2025 Ergon Mobility · Live CAN Bus Dashboard</small>
-    </div>
-  </footer>
+        <table>
+            <thead>
+                <tr>
+                    <th>CAN ID</th>
+                    <th>Data</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody id="log">
+                <!-- Data will be inserted here -->
+            </tbody>
+        </table>
+    </main>
 
-  <!-- Socket.IO + JS Logic -->
-  <script>
-    const socket      = io();
-    const log         = document.getElementById("log");
-    const searchInput = document.getElementById("searchInput");
-    const dot         = document.getElementById("status-indicator");
-    const text        = document.getElementById("status-text");
-    let allMsgs = [], heartbeatTimer;
+    <footer>
+        &copy; 2025 CAN Monitor | Powered by Flask + Socket.IO
+    </footer>
 
-    socket.on("can_message", data => {
-      allMsgs.unshift(data);
-      if (allMsgs.length > 100) allMsgs.pop();
-      renderTable();
-    });
+    <script>
+        const socket = io();
+        const log = document.getElementById("log");
+        const filterInput = document.getElementById("filter");
+        const toggleBtn = document.getElementById("toggle");
+        const downloadBtn = document.getElementById("download");
 
-    socket.on("heartbeat", payload => {
-      const isOnline = payload.status === "online";
-      setStatus(isOnline);
-      clearTimeout(heartbeatTimer);
-      if (isOnline) {
-        heartbeatTimer = setTimeout(() => setStatus(false), 5000);
-      }
-    });
+        const maxRows = 100;
+        let paused = false;
+        let messages = [];
 
-    function setStatus(online) {
-      dot.classList.toggle("online", online);
-      text.textContent = online ? "Connected" : "Disconnected";
-    }
+        socket.on("can_message", (data) => {
+            if (paused) return;
 
-    searchInput.addEventListener("input", renderTable);
+            messages.unshift(data);
+            if (messages.length > maxRows) messages = messages.slice(0, maxRows);
+            renderTable();
+        });
 
-    function renderTable() {
-      const filter = searchInput.value.toLowerCase();
-      log.innerHTML = "";
-      allMsgs.filter(m =>
-        m.id.toLowerCase().includes(filter) ||
-        m.data.toLowerCase().includes(filter)
-      ).forEach(msg => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${msg.id}</td>
-          <td>${msg.data}</td>
-          <td>${msg.timestamp}</td>
-        `;
-        log.appendChild(row);
-      });
-    }
-  </script>
+        function renderTable() {
+            const filterValue = filterInput.value.trim().toLowerCase();
+            log.innerHTML = "";
+
+            for (const msg of messages) {
+                if (!msg.id.toLowerCase().includes(filterValue)) continue;
+
+                const row = document.createElement("tr");
+                row.innerHTML = \`
+                    <td>\${msg.id}</td>
+                    <td>\${msg.data}</td>
+                    <td>\${msg.timestamp}</td>
+                \`;
+                log.appendChild(row);
+            }
+        }
+
+        filterInput.addEventListener("input", renderTable);
+
+        toggleBtn.addEventListener("click", () => {
+            paused = !paused;
+            toggleBtn.textContent = paused ? "Resume" : "Pause";
+        });
+
+        downloadBtn.addEventListener("click", () => {
+            if (messages.length === 0) return;
+
+            let csv = "CAN ID,Data,Timestamp\\n";
+            messages.forEach(msg => {
+                csv += \`\${msg.id},\${msg.data},\${msg.timestamp}\\n\`;
+            });
+
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "can_data.csv";
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    </script>
 </body>
 </html>
 """
