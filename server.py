@@ -1,11 +1,19 @@
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, send_file
 from flask_socketio import SocketIO
-import os, time
+import os, time, csv
+from datetime import datetime
 
 app = Flask(__name__, static_folder="static")
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 SECRET_TOKEN = os.environ.get("SECRET_TOKEN", "supersecret")
+CSV_FILE = "can_log.csv"
+
+# Initialize CSV file with headers if it doesn't exist
+if not os.path.exists(CSV_FILE):
+    with open(CSV_FILE, mode="w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["timestamp", "can_id", "data"])
 
 html_template = """
 <!DOCTYPE html>
@@ -61,6 +69,9 @@ html_template = """
       <div class="col-md-6">
         <input id="searchInput" type="text" class="form-control" placeholder="Filter by CAN ID or Data...">
       </div>
+      <div class="col-md-6 text-end">
+        <a href="/logs/download" class="btn btn-sm btn-outline-secondary">Download Logs</a>
+      </div>
     </div>
     <div class="table-wrapper">
       <table class="table table-striped table-bordered">
@@ -79,7 +90,7 @@ html_template = """
   <!-- Footer -->
   <footer>
     <div class="container">
-      <small class="text-muted">© 2025 Ergon Mobility · Live CAN Bus Dashboard</small>
+      <small class="text-muted">CAN Monitor by Ergon Mobility </small>
     </div>
   </footer>
 
@@ -144,8 +155,20 @@ def receive_data():
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer ") or auth.split()[1] != SECRET_TOKEN:
         return jsonify({"error": "Unauthorized"}), 401
+
     data = request.get_json() or {}
-    socketio.emit("can_message", data)
+    can_id = data.get("id", "")
+    can_data = data.get("data", "")
+    timestamp = data.get("timestamp") or datetime.utcnow().isoformat()
+
+    # Emit to connected clients
+    socketio.emit("can_message", {"id": can_id, "data": can_data, "timestamp": timestamp})
+
+    # Log to CSV
+    with open(CSV_FILE, mode="a", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([timestamp, can_id, can_data])
+
     return jsonify({"status": "received"}), 200
 
 @app.route("/api/heartbeat", methods=["POST"])
@@ -157,6 +180,10 @@ def heartbeat():
     status = payload.get("status", "offline")
     socketio.emit("heartbeat", {"status": status, "ts": time.time()})
     return jsonify({"status": "ok"}), 200
+
+@app.route("/logs/download")
+def download_logs():
+    return send_file(CSV_FILE, as_attachment=True)
 
 @socketio.on("connect")
 def on_connect():
