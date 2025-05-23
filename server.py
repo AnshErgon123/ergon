@@ -1,15 +1,15 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, send_from_directory
 from flask_socketio import SocketIO
 import os, time
 
-app = Flask(__name__, static_folder="static", template_folder="templates")
+app = Flask(__name__, static_folder="static")
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 SECRET_TOKEN = os.environ.get("SECRET_TOKEN", "supersecret")
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return send_from_directory('templates', 'index.html')
 
 @app.route("/api/send_data", methods=["POST"])
 def receive_data():
