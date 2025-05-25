@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAN Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary-color: #2196f3;
+            --success-color: #4caf50;
+            --warning-color: #ff9800;
+            --dark-bg: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #ffffff;
+            --border-radius: 8px;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        /* Navbar Styles */
+        .navbar {
+            background-color: var(--card-bg);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-color);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .nav-link {
+            color: var(--text-color);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            transition: background-color 0.3s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(33, 150, 243, 0.1);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1200px;
+            margin: 80px auto 0;
+            padding: 2rem;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-title {
+            font-size: 2rem;
+            font-weight: 500;
+        }
+
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 1.5rem;
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-card {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+        }
+
+        .stat-icon.success { background-color: rgba(76, 175, 80, 0.1); }
+        .stat-icon.primary { background-color: rgba(33, 150, 243, 0.1); }
+        .stat-icon.warning { background-color: rgba(255, 152, 0, 0.1); }
+
+        .stat-title {
+            font-size: 1rem;
+            color: #aaa;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        th {
+            color: #aaa;
+            font-weight: 500;
+        }
+
+        /* Progress Bars */
+        .progress-container {
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--primary-color);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* Mobile Menu */
+        .menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .menu-btn {
+                display: block;
+            }
+
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background-color: var(--card-bg);
+                flex-direction: column;
+                padding: 1rem;
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            .nav-link {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="/" class="nav-brand">CAN Monitor</a>
+            <button class="menu-btn" onclick="toggleMenu()">☰</button>
+            <div class="nav-links" id="navLinks">
+                <a href="/" class="nav-link active">Dashboard</a>
+                <a href="/settings" class="nav-link">Settings</a>
+                <a href="/about" class="nav-link">About</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">Dashboard</h1>
+            <button class="refresh-btn" onclick="refreshData()">↻</button>
+        </div>
+
+        <!-- Status Cards -->
+        <div class="cards-grid">
+            <div class="card stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon success">✓</div>
+                    <div class="stat-title">Connection Status</div>
+                </div>
+                <div class="stat-value">Connected</div>
+            </div>
+
+            <div class="card stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon primary">⚡</div>
+                    <div class="stat-title">Messages/sec</div>
+                </div>
+                <div class="stat-value">1,250</div>
+            </div>
+
+            <div class="card stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon warning">⚠</div>
+                    <div class="stat-title">Error Rate</div>
+                </div>
+                <div class="stat-value">0.5%</div>
+            </div>
+
+            <div class="card stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon success">⏱</div>
+                    <div class="stat-title">Uptime</div>
+                </div>
+                <div class="stat-value">2h 45m</div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Recent Messages -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Recent Messages</h2>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Data</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>0x123</td>
+                                <td>0x1A2B3C4D</td>
+                                <td>2024-03-20 14:30:45</td>
+                            </tr>
+                            <tr>
+                                <td>0x456</td>
+                                <td>0x5E6F7A8B</td>
+                                <td>2024-03-20 14:30:44</td>
+                            </tr>
+                            <tr>
+                                <td>0x789</td>
+                                <td>0x9C0D1E2F</td>
+                                <td>2024-03-20 14:30:43</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="card">
+                <h2>Statistics</h2>
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Total Messages</span>
+                        <span>125,000</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 75%"></div>
+                    </div>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Active Nodes</span>
+                        <span>8</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 80%"></div>
+                    </div>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>Bus Load</span>
+                        <span>45%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 45%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Mobile menu toggle
+        function toggleMenu() {
+            const navLinks = document.getElementById('navLinks');
+            navLinks.classList.toggle('active');
+        }
+
+        // Refresh data
+        function refreshData() {
+            // Add your refresh logic here
+            console.log('Refreshing data...');
+        }
+
+        // Update active nav link
+        document.querySelectorAll('.nav-link').forEach(link => {
+            if (link.getAttribute('href') === window.location.pathname) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html> 
